@@ -15,7 +15,22 @@ jobs:
 
       - name: Build APK
         run: |
-          yes | buildozer android debug
+          set +e
+          buildozer -v android debug > /tmp/build.log 2>&1
+          EXITCODE=$?
+          echo "===== BUILD FINISHED (exit $EXITCODE) ====="
+          echo ""
+          echo "===== LAST 200 LINES OF LOG ====="
+          tail -200 /tmp/build.log
+          echo ""
+          echo "===== ERRORS ONLY ====="
+          grep -n -i -E "(error:|failed|cannot|no such|exception|fatal)" /tmp/build.log | tail -60
+          echo ""
+          if [ $EXITCODE -ne 0 ]; then
+            echo "BUILD FAILED"
+            exit 1
+          fi
+          ls -la bin/
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
