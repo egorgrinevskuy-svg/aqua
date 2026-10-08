@@ -14,7 +14,8 @@ jobs:
       - name: Build with Buildozer
         uses: digreatbrian/buildozer-action@v2
         with:
-          buildozer_version: stable
+          work-dir: .
+          buildozer-cmd: android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
