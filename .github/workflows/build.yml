@@ -11,46 +11,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Build with Buildozer
+        uses: digreatbrian/buildozer-action@v2
         with:
-          python-version: '3.11'
-
-      - name: Install system deps
-        run: |
-          sudo apt update
-          sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev cmake libffi-dev libssl-dev
-          pip install --upgrade buildozer cython virtualenv
-
-      - name: Cache Buildozer
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.buildozer
-            .buildozer
-          key: buildozer-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-
-      - name: Accept Android SDK licenses
-        run: |
-          mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
-          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-          echo "84831b9409646a918e30573bab4c9c91346d8abd" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
-          echo "d975f751698a77b662f1254ddbeed3901e976f5a" > ~/.buildozer/android/platform/android-sdk/licenses/intel-android-extra-license
-          echo "33b6a2b64607f11b759f320ef9dff4ae5c47d97a" > ~/.buildozer/android/platform/android-sdk/licenses/google-gdk-license
-          echo "e9acab5b5fbb560a72cfaecce8946896ff6aab9d" > ~/.buildozer/android/platform/android-sdk/licenses/mips-android-sysimage-license
-
-      - name: Build APK
-        run: |
-          buildozer android debug 2>&1 | tee build.log
-          if [ ! -f bin/*.apk ]; then
-            echo "APK не создан. Смотрим лог:"
-            tail -80 build.log
-            exit 1
-          fi
+          buildozer_version: stable
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: aqua-apk
           path: bin/*.apk
-          if-no-files-found: error
