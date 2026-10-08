@@ -16,20 +16,21 @@ jobs:
       - name: Build APK
         run: |
           set +e
-          buildozer -v android debug > /tmp/build.log 2>&1
-          EXITCODE=$?
+          yes | buildozer -v android debug > /tmp/build.log 2>&1
+          EXITCODE=${PIPESTATUS[1]}
           echo "===== BUILD FINISHED (exit $EXITCODE) ====="
           echo ""
           echo "===== LAST 200 LINES OF LOG ====="
           tail -200 /tmp/build.log
           echo ""
           echo "===== ERRORS ONLY ====="
-          grep -n -i -E "(error:|failed|cannot|no such|exception|fatal)" /tmp/build.log | tail -60
+          grep -n -i -E "(error:|failed|cannot|no such|exception|fatal|Traceback)" /tmp/build.log | tail -60
           echo ""
-          if [ $EXITCODE -ne 0 ]; then
-            echo "BUILD FAILED"
+          if [ $EXITCODE -ne 0 ] || [ ! -f bin/*.apk ]; then
+            echo "===== BUILD FAILED ====="
             exit 1
           fi
+          echo "===== BUILD SUCCESS ====="
           ls -la bin/
 
       - name: Upload APK
