@@ -12,13 +12,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build with Buildozer
-        uses: digreatbrian/buildozer-action@v2
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
         with:
-          work-dir: .
-          buildozer-cmd: android debug
+          command: buildozer android debug
+          buildozer_version: stable
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: aqua-apk
-          path: bin/*.apk
+          path: ${{ steps.buildozer.outputs.filename }}
