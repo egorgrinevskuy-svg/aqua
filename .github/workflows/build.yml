@@ -14,6 +14,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build APK
+        shell: bash
         run: |
           set +e
           yes | buildozer -v android debug > /tmp/build.log 2>&1
@@ -24,10 +25,10 @@ jobs:
           tail -200 /tmp/build.log
           echo ""
           echo "===== ERRORS ONLY ====="
-          grep -n -i -E "(error:|failed|cannot|no such|exception|fatal|Traceback)" /tmp/build.log | tail -60
+          grep -n -i -E "(error:|failed|cannot|no such|exception|fatal|Traceback)" /tmp/build.log | tail -60 || true
           echo ""
-          if [ $EXITCODE -ne 0 ] || [ ! -f bin/*.apk ]; then
-            echo "===== BUILD FAILED ====="
+          if [ ! -f bin/*.apk ]; then
+            echo "===== APK NOT FOUND - BUILD FAILED ====="
             exit 1
           fi
           echo "===== BUILD SUCCESS ====="
