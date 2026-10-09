@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: kivy/buildozer:1.4.0
+      image: kivy/buildozer:stable
     steps:
       - uses: actions/checkout@v4
 
