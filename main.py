@@ -14,6 +14,7 @@ import threading
 import time
 import traceback
 import urllib.error
+import urllib.parse
 import urllib.request
 from difflib import SequenceMatcher
 
@@ -256,22 +257,97 @@ class VoiceEngine:
         return speak
 
     def _init_gtts_android(self):
-        from gtts import gTTS
         from jnius import autoclass
         MP = autoclass("android.media.MediaPlayer")
 
+        def _split(text):
+            text = text.replace("!", ".").replace("?", ".").replace("…", ".")
+            parts = []
+            current = ""
+            for sentence in text.split("."):
+                sentence = sentence.strip()
+                if not sentence:
+                    continue
+                if len(current) + len(sentence) < 180:
+                    current += sentence + ". "
+                else:
+                    if current:
+                        parts.append(current.strip())
+                    current = sentence + ". "
+            if current:
+                parts.append(current.strip())
+            return parts
+
+        def _fetch(text):
+            params = urllib.parse.urlencode({
+                "ie": "UTF-8", "q": text, "tl": "ru", "client": "tw-ob",
+            })
+            url = f"https://translate.google.com/translate_tts?{params}"
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=15) as r:
+                return r.read()
+
         def speak(text):
-            p = os.path.join(tempfile.gettempdir(), "aqua_tts.mp3")
-            gTTS(text=str(text), lang="ru").save(p)
-            player = MP()
+            text = str(text).strip()
+            if not text:
+                return
+            if len(text) > 400:
+                text = text[:400]
+            for part in _split(text):
+                if not part:
+                    continue
+                try:
+                    data = _fetch(part[:190])
+                except Exception as e:
+                    print(f"[tts] {e}")
+                    continue
+                p = os.path.join(tempfile.gettempdir(), "aqua_tts.mp3")
+                with open(p, "wb") as f:
+                    f.write(data)
+                player = MP()
+                try:
+                    player.setDataSource(p)
+                    player.prepare()
+                    player.start()
+                    while player.isPlaying():
+                        time.sleep(0.1)
+                finally:
+                    player.release()
+
+        return speak
+
+    def _init_gtts_desktop(self):
+        def _fetch(text):
+            params = urllib.parse.urlencode({
+                "ie": "UTF-8", "q": text, "tl": "ru", "client": "tw-ob",
+            })
+            url = f"https://translate.google.com/translate_tts?{params}"
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=15) as r:
+                return r.read()
+
+        def speak(text):
+            text = str(text).strip()
+            if not text:
+                return
+            if len(text) > 190:
+                text = text[:190]
             try:
-                player.setDataSource(p)
-                player.prepare()
-                player.start()
-                while player.isPlaying():
-                    time.sleep(0.1)
-            finally:
-                player.release()
+                data = _fetch(text)
+            except Exception as e:
+                print(f"[tts] {e}")
+                return
+            p = os.path.join(tempfile.gettempdir(), "aqua_tts.mp3")
+            with open(p, "wb") as f:
+                f.write(data)
+            for cmd in (
+                ["mpg123", "-q", p],
+                ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", p],
+            ):
+                if shutil.which(cmd[0]):
+                    subprocess.run(cmd)
+                    return
+
         return speak
 
     def _init_pyttsx3(self):
@@ -282,29 +358,6 @@ class VoiceEngine:
         def speak(text):
             eng.say(str(text))
             eng.runAndWait()
-        return speak
-
-    def _init_gtts_desktop(self):
-        from gtts import gTTS
-        try:
-            import pygame
-            pygame.mixer.init()
-        except Exception:
-            pygame = None
-
-        def speak(text):
-            p = os.path.join(tempfile.gettempdir(), "aqua_tts.mp3")
-            gTTS(text=str(text), lang="ru").save(p)
-            if pygame:
-                pygame.mixer.music.load(p)
-                pygame.mixer.music.play()
-                while pygame.mixer.music.get_busy():
-                    time.sleep(0.05)
-                return
-            for cmd in (["mpg123", "-q", p], ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", p]):
-                if shutil.which(cmd[0]):
-                    subprocess.run(cmd)
-                    return
         return speak
 
     def _init_say(self):
@@ -349,7 +402,7 @@ class VoiceEngine:
                 self.speak_fn = fn
                 self.kind = "espeak"
                 return
-        fn = self._try("gtts", self._init_gtts_desktop)
+        fn = self._try("gtts_desktop", self._init_gtts_desktop)
         if fn:
             self.speak_fn = fn
             self.kind = "gTTS"
