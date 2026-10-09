@@ -10,7 +10,7 @@ source.include_patterns = patches/*.py
 
 version = 2.0
 
-requirements = python3,kivy,gtts,pyjnius,requests,urllib3,chardet,idna,certifi
+requirements = python3,kivy,pyjnius
 
 orientation = portrait
 fullscreen = 0
@@ -26,4 +26,3 @@ android.archs = arm64-v8a, armeabi-v7a
 android.accept_sdk_license = True
 
 android.allow_backup = True
-android.logcat_filters = *:S python:D
