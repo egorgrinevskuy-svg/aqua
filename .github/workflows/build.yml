@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: kivy/buildozer:stable
+      image: kivy/buildozer:latest
     steps:
       - uses: actions/checkout@v4
 
@@ -20,15 +20,18 @@ jobs:
           yes | buildozer -v android debug > /tmp/build.log 2>&1
           EXITCODE=${PIPESTATUS[1]}
           echo "===== BUILD FINISHED (exit $EXITCODE) ====="
+          echo ""
+          echo "===== LAST 200 LINES OF LOG ====="
           tail -200 /tmp/build.log
           echo ""
           echo "===== ERRORS ONLY ====="
-          grep -n -i -E "(error:|failed|cannot|no such|exception|fatal|Traceback)" /tmp/build.log | tail -60 || true
+          grep -n -i -E "(error:|failed|cannot|no such|exception|fatal|Traceback|not a supported wheel)" /tmp/build.log | tail -60 || true
+          echo ""
           if [ ! -f bin/*.apk ]; then
-            echo "===== BUILD FAILED ====="
+            echo "===== APK NOT FOUND - BUILD FAILED ====="
             exit 1
           fi
-          echo "===== SUCCESS ====="
+          echo "===== BUILD SUCCESS ====="
           ls -la bin/
 
       - name: Upload APK
